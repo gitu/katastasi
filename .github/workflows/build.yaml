@@ -49,7 +49,7 @@ jobs:
       - name: install browsers
         run: npx playwright install
 
-      - name: run npm tests
+      - name: run npm e2e tests
         run: npm run test:e2e
         working-directory: ui
 
