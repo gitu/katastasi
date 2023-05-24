@@ -1,0 +1,44 @@
+project_name: katastasi
+
+builds:
+  - main: ./cmd/katastasi
+    env:
+      - CGO_ENABLED=0
+    goos:
+#      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+#      - arm64
+
+dockers:
+  - image_templates:
+      - ghcr.io/gitu/{{.ProjectName}}:latest
+      - ghcr.io/gitu/{{.ProjectName}}:{{.Version}}
+      - ghcr.io/gitu/{{.ProjectName}}:{{.Major}}
+      - ghcr.io/gitu/{{.ProjectName}}:{{.Major}}.{{.Minor}}
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/gitu/{{ .ProjectName }}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

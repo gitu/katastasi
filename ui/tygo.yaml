@@ -1,0 +1,3 @@
+packages:
+  - path: "github.com/gitu/katastasi/pkg/types"
+    output_path: "src/types"
