@@ -43,8 +43,8 @@ jobs:
       - name: run go tests
         run: go test ./pkg/...
 
-      - name: run go tests
-        run: go generate ./...
+      - name: run go generate
+        run: go generate ./ui
 
       - name: install browsers
         run: npx playwright install
