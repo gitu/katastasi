@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - '*'
+    branches:
+      - main
 
 jobs:
   build:
@@ -49,8 +51,8 @@ jobs:
       - name: install browsers
         run: npx playwright install
 
-      - name: run npm tests
-        run: npm test:e2e
+      - name: run npm e2e tests
+        run: npm run test:e2e
         working-directory: ui
 
       -
