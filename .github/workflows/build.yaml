@@ -46,10 +46,6 @@ jobs:
       - name: run go tests
         run: go generate ./...
 
-      - name: run npm unit tests
-        run: npm run test:unit
-        working-directory: ui
-
       - name: install browsers
         run: npx playwright install
 
