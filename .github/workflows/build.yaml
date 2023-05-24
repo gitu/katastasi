@@ -54,7 +54,7 @@ jobs:
         run: npx playwright install
 
       - name: run npm tests
-        run: npm test
+        run: npm test:e2e
         working-directory: ui
 
       -
