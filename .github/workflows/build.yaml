@@ -15,14 +15,12 @@ jobs:
     permissions:
       packages: write
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      -
-        name: Set up Go
+      - name: Set up Go
         uses: actions/setup-go@v3
         with:
           go-version: '>=1.20.0'
@@ -58,10 +56,9 @@ jobs:
         run: npm run test:e2e
         working-directory: ui
 
-      -
-        name: Run GoReleaser - snapshot
+      - name: Run GoReleaser - snapshot
         uses: goreleaser/goreleaser-action@v4
-        if: ${{ ! startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/github-action-publish' }}
+        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
         with:
           distribution: goreleaser
           version: latest
@@ -69,17 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run GoReleaser - nightly
-        uses: goreleaser/goreleaser-action@v4
-        if: github.ref == 'refs/heads/github-action-publish'
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --nightly
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Run GoReleaser - release
+      - name: Run GoReleaser - release
         uses: goreleaser/goreleaser-action@v4
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
@@ -88,6 +75,10 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pushing image to ghcr.io
+        if: github.ref != 'refs/heads/github-action-publish'
+        run: docker push ghcr.io/gitu/katastasi:latest
 
       - name: Showing difference
         run: git --no-pager diff
