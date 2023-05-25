@@ -83,7 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pushing image to ghcr.io
-        if: github.ref != 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: docker push ghcr.io/gitu/katastasi:latest
 
       - name: Showing difference
