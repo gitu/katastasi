@@ -49,7 +49,7 @@ jobs:
         run: go generate ./ui
 
       - name: install browsers
-        run: npx playwright install
+        run: npx playwright install chromium
 
       - name: run npm e2e tests
         run: npm run test:e2e
