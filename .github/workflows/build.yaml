@@ -52,7 +52,7 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles(\'ui/package-lock.json\') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('ui/package-lock.json') }}
 
       - name: install browsers
         run: npx playwright install chromium
