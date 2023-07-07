@@ -1,0 +1,62 @@
+## This config map describes a sample configuration for our status page
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statuspage-queries
+  labels:
+    katastasi.io/statuspage-queries: "true"
+data:
+  unhealthy_pods: 'sum (kube_pod_status_ready{condition="false" namespace="${namespace}"})'
+  unhealthy_pods_for_deployment: 'sum (kube_pod_status_ready{condition="false", namespace="${namespace}", deployment="${deployment}"})'
+  unhealthy_pods_for_statefulset: 'sum (kube_pod_status_ready{condition="false", namespace="${namespace}", statefulset="${statefulset}"})'
+  consumergroup_lag: 'sum (kafka_consumergroup_lag{consumergroup="${consumergroup}"})'
+  consumergroup_lag_for_topic: 'sum (kafka_consumergroup_lag{consumergroup="${consumergroup}", topic="${topic}"})'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statuspage-config
+  labels:
+    katastasi.io/statuspage-config: "true"
+  annotations:
+    katastasi.io/statuspage: "pet,overall"
+    katastasi.io/service: "petshop"
+    katastasi.io/owner: "team-pet"
+    katastasi.io/contact: "https://petshop.com/contact"
+    katastasi.io/url: "https://petshop.com"
+    katassisi.io/env: "production"
+data:
+  queries: |
+    - name: "Availability Pods"
+      query: "${unhealthy_pods}"
+      description: "There are unhealthy pods in the environment"
+      conditions:
+        - severity: "warning"
+          condition: "gt"
+          threshold: "0"
+        - severity: "critical"
+          condition: "gt"
+          threshold: "0"
+          duration: "5m"
+    - name: "Consumer Group Lag"
+      query: "${consumergroup_lag}"
+      description: "There is consumer group lag in the environment"
+      parameters:
+        consumergroup: "petshop.*"
+      conditions:
+        - severity: "info"
+          condition: "gt"
+          threshold: "0"
+          on: "raising"
+        - severity: "warning"
+          condition: "gt"
+          threshold: "0"
+          on: "raising"
+        - severity: "critical"
+          condition: "gt"
+          threshold: "1000"
+          on: "raising"
+          
+    
+   
+

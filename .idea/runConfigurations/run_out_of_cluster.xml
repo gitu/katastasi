@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="run-out-of-cluster" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="katastasi" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="-out-of-cluster" />
+    <kind value="PACKAGE" />
+    <package value="github.com/gitu/katastasi/cmd/katastasi" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/cmd/katastasi/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -9,9 +9,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-var sample = flag.Bool("sample", false, "include sample data in response")
 var outOfCluster = flag.Bool("out-of-cluster", false, "load data via kubeconfig")
-var inCluster = flag.Bool("in-cluster", false, "load data via deployment")
 var namespaces = flag.String("namespaces", "katastasi", "namespaces to load configmaps from")
 var filterNamespaces = flag.String("crdNamespaces", "default,katastasi", "namespaces to filter fetching CRDs by")
 
@@ -25,5 +23,6 @@ func main() {
 		"  commit:  " + commit + "\n" +
 		"  built:   " + date + ""
 	fmt.Println(info)
-	serve.StartServer(info)
+	flag.Parse()
+	serve.StartServer(info, *outOfCluster)
 }

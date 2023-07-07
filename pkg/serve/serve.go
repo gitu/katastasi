@@ -15,7 +15,12 @@ import (
 
 var lastUpdate = time.Now() // time.UnixMilli(0)
 
-func StartServer(info string) {
+func StartServer(info string, externalClient bool) {
+
+	clientset := buildClient(externalClient)
+
+	m := newMonitor(clientset)
+	m.startMonitor()
 
 	app := fiber.New()
 	app.Use(compress.New())
