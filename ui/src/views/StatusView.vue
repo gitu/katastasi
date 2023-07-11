@@ -10,8 +10,9 @@ const status = ref({} as StatusInfo);
 const route = useRoute();
 const error = ref(false);
 
-async function fetchStatus(newId: string) {
-  const response = await fetch(`/api/status/${newId}`);
+
+async function fetchStatus() {
+  const response = await fetch(`/api/env/${route.params.env}/status/${route.params.id}`);
   if (!response.ok) {
     error.value = true;
     loading.value = false;
@@ -20,12 +21,13 @@ async function fetchStatus(newId: string) {
   status.value = await response.json();
 }
 
-watch(() => route.params.id, async (newId) => {
-  loading.value = true;
-  status.value = {} as StatusInfo;
-  error.value = false;
-  await fetchStatus(newId as string);
-  loading.value = false;
+watch(
+    () => route.params.id, async (newId) => {
+      loading.value = true;
+      status.value = {} as StatusInfo;
+      error.value = false;
+      await fetchStatus();
+      loading.value = false;
 }, {immediate: true});
 </script>
 

@@ -3,6 +3,11 @@
     <module name="katastasi" />
     <working_directory value="$PROJECT_DIR$" />
     <parameters value="-out-of-cluster" />
+    <EXTENSION ID="software.aws.toolkits.jetbrains.core.execution.GoAwsConnectionRunConfigurationExtension">
+      <option name="credential" />
+      <option name="region" />
+      <option name="useCurrentConnection" value="false" />
+    </EXTENSION>
     <kind value="PACKAGE" />
     <package value="github.com/gitu/katastasi/cmd/katastasi" />
     <directory value="$PROJECT_DIR$" />

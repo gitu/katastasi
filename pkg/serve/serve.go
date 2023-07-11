@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"github.com/gitu/katastasi/pkg/core"
 	"github.com/gitu/katastasi/pkg/types"
 	"github.com/gitu/katastasi/ui"
 	"github.com/gofiber/fiber/v2"
@@ -15,78 +16,74 @@ import (
 
 var lastUpdate = time.Now() // time.UnixMilli(0)
 
-func StartServer(info string, externalClient bool) {
-
-	clientset := buildClient(externalClient)
-
-	m := newMonitor(clientset)
-	m.startMonitor()
+func StartServer(k *core.Katastasi) {
 
 	app := fiber.New()
 	app.Use(compress.New())
 	app.Use(requestid.New())
 	app.Use(logger.New())
 
-	app.Get("/api/status/:id", func(c *fiber.Ctx) error {
-		if c.Params("id") == "s1" {
-			return c.JSON(types.StatusInfo{
-				LastUpdate:    lastUpdate.UnixMilli(),
-				StatusPage:    types.StatusPage{Id: "s1", Name: "Nikephoros"},
-				OverallStatus: types.OK,
-				Services: []types.Service{
-					{
-						Id:     "s1-1",
-						Name:   "Nikephoros API",
-						Status: types.OK,
-					},
-					{
-						Id:     "s1-2",
-						Name:   "Nikephoros UI",
-						Status: types.OK,
-					},
-				},
-			})
-		} else if c.Params("id") == "s2" {
-			return c.JSON(types.StatusInfo{
-				LastUpdate:    lastUpdate.UnixMilli(),
-				StatusPage:    types.StatusPage{Id: "s2", Name: "Okeanos"},
-				OverallStatus: types.Warning,
-				Services: []types.Service{
-					{
-						Id:     "s2-1",
-						Name:   "Okeanos API",
-						Status: types.Warning,
-					},
-					{
-						Id:     "s2-2",
-						Name:   "Okeanos UI",
-						Status: types.OK,
-					},
-				},
-			})
+	app.Get("/api/env/:env/status/:page", func(c *fiber.Ctx) error {
+		env := c.Params("env")
+		page := c.Params("page")
+		if _, f := k.Config.Environments[env]; !f {
+			return c.SendStatus(http.StatusNotFound)
+		}
+		if _, f := k.Config.Environments[env].StatusPages[page]; !f {
+			return c.SendStatus(http.StatusNotFound)
 		}
 
-		return c.SendStatus(http.StatusNotFound)
+		status := k.GetPageStatus(env, page)
+
+		ret := types.StatusInfo{
+			LastUpdate:    status.LastUpdate.UnixMilli(),
+			OverallStatus: types.MapStatus(status.Status),
+			Services:      []types.Service{},
+			Name:          k.Config.Environments[env].StatusPages[page].Name,
+		}
+		for key, service := range status.Services {
+			sd := k.Config.GetService(env, key)
+			newService := types.Service{
+				Id:         sd.ID,
+				Name:       sd.Name,
+				Status:     types.MapStatus(service.Status),
+				LastUpdate: service.LastUpdate.UnixMilli(),
+				Components: make([]types.ServiceComponent, len(service.Components)),
+			}
+			for i, component := range service.Components {
+				newService.Components[i] = types.ServiceComponent{
+					Status: types.MapStatus(component.Status),
+					Name:   component.Name,
+					Info:   component.StatusString,
+				}
+			}
+			ret.Services = append(ret.Services, newService)
+		}
+
+		return c.JSON(ret)
 	})
 
-	app.Get("/api/status", func(c *fiber.Ctx) error {
-		return c.JSON([]types.StatusPage{
-			{
-				Id:   "s1",
-				Name: "Nikephoros",
-			},
-			{
-				Id:   "s2",
-				Name: "Okeanos",
-			},
-			{
-				Id:   "s3",
-				Name: "Shine-Tsu-Hiko",
-			},
-		})
+	app.Get("/api/envs", func(c *fiber.Ctx) error {
+		environments := []types.Environment{}
+		for _, env := range k.Config.Environments {
+			e := types.Environment{
+				Id:          env.ID,
+				Name:        env.ID,
+				StatusPages: map[string]string{},
+				Services:    map[string]string{},
+			}
+			for _, sp := range env.StatusPages {
+				e.StatusPages[sp.ID] = sp.Name
+			}
+			for _, s := range env.Services {
+				e.Services[s.ID] = s.Name
+			}
+			environments = append(environments, e)
+		}
+		return c.JSON(environments)
 	})
 	app.Get("/api/info", func(c *fiber.Ctx) error {
-		return c.SendString(info)
+		return c.SendString(k.KataStatus.Info)
 	})
 
 	app.Get("/robots.txt", func(c *fiber.Ctx) error {

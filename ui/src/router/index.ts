@@ -11,7 +11,7 @@ const router = createRouter({
       component: HomeView
     },
     {
-      path: '/status/:id',
+      path: '/env/:env/status/:id',
       name: 'status',
       component: StatusView
     }
