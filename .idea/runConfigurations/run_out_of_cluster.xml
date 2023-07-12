@@ -2,7 +2,7 @@
   <configuration default="false" name="run-out-of-cluster" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="katastasi" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-out-of-cluster" />
+    <parameters value="-out-of-cluster -prometheus-url http://192.168.49.2:30775/ -namespaces=default" />
     <EXTENSION ID="software.aws.toolkits.jetbrains.core.execution.GoAwsConnectionRunConfigurationExtension">
       <option name="credential" />
       <option name="region" />

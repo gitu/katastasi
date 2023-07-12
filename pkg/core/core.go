@@ -1,19 +1,26 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gitu/katastasi/pkg/config"
 	"github.com/jellydator/ttlcache/v3"
+	"github.com/prometheus/common/model"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"log"
-	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
+
+	papi "github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 type KataStatus struct {
@@ -23,27 +30,37 @@ type KataStatus struct {
 }
 
 type Katastasi struct {
-	QueryNamespaces []string
-	DataConfig      *rest.Config
-	mu              sync.Mutex
-	Config          *config.Config
-	KataStatus      *KataStatus
-	StatusCache     *ttlcache.Cache[string, config.ServiceStatus]
+	QueryNamespaces  []string
+	DataConfig       *rest.Config
+	mu               sync.Mutex
+	Config           *config.Config
+	KataStatus       *KataStatus
+	StatusCache      *ttlcache.Cache[string, config.ServiceStatus]
+	PrometheusClient papi.Client
 }
 
-func NewKatastasi(info string, queryNamespaces []string, dataConfig *rest.Config) *Katastasi {
+func NewKatastasi(info string, queryNamespaces []string, dataConfig *rest.Config, prometheusUrl string) *Katastasi {
+
+	client, err := papi.NewClient(papi.Config{
+		Address: prometheusUrl,
+	})
+	if err != nil {
+		log.Fatalf("Error creating client: %v\n", err)
+	}
+
 	return &Katastasi{
 		QueryNamespaces: queryNamespaces,
 		DataConfig:      dataConfig,
 		Config: &config.Config{
 			Environments: make(map[string]config.Environment),
-			Queries:      make(map[string]string),
+			Queries:      make(map[string]*template.Template),
 		},
 		KataStatus: &KataStatus{
 			Info:    info,
 			Healthy: true,
 			LastMsg: "",
 		},
+		PrometheusClient: client,
 	}
 }
 
@@ -63,7 +80,7 @@ func (k *Katastasi) buildAndStartCache() {
 		})
 	k.StatusCache = ttlcache.New[string, config.ServiceStatus](
 		ttlcache.WithLoader[string, config.ServiceStatus](loader),
-		ttlcache.WithTTL[string, config.ServiceStatus](1*time.Minute),
+		ttlcache.WithTTL[string, config.ServiceStatus](5*time.Second),
 	)
 	go k.StatusCache.Start()
 }
@@ -73,6 +90,7 @@ func (k *Katastasi) reloadConfig() error {
 	defer k.mu.Unlock()
 	ret := &config.Config{
 		Environments: make(map[string]config.Environment),
+		Queries:      make(map[string]*template.Template),
 	}
 	clientSet, err := kubernetes.NewForConfig(k.DataConfig)
 	if err != nil {
@@ -126,11 +144,20 @@ func (k *Katastasi) addServicesToConfig(ret *config.Config, clientSet *kubernete
 			service.Environment = "default"
 		}
 		if componentData, found := configMap.Data["components"]; found {
-			var components []config.ServiceComponent
+			var components []*config.ServiceComponent
 			err = yaml.Unmarshal([]byte(componentData), &components)
 			if err != nil {
 				log.Printf("Error parsing service components %s for ConfigMap %s in %s: %s", service.Name, configMap.Name, configMap.Namespace, err.Error())
 				continue
+			}
+
+			for _, c := range components {
+				if c.Parameters == nil {
+					c.Parameters = make(map[string]string)
+				}
+				if _, f := c.Parameters["Namespace"]; !f {
+					c.Parameters["Namespace"] = configMap.Namespace
+				}
 			}
 			service.Components = components
 		}
@@ -153,11 +180,16 @@ func (k *Katastasi) addQueriesToConfig(ret *config.Config, clientSet *kubernetes
 		}
 		for _, configMap := range list.Items {
 			for name, query := range configMap.Data {
-				if ret.Queries[name] != "" {
+				if _, f := ret.Queries[name]; f {
 					log.Printf("Duplicate query name %s in %s (%s)", name, configMap.Name, configMap.Namespace)
 					continue
 				}
-				ret.Queries[name] = query
+				t, err := template.New(name).Parse(query)
+				if err != nil {
+					log.Printf("Error parsing query %s for ConfigMap %s in %s: %s", name, configMap.Name, configMap.Namespace, err.Error())
+					continue
+				}
+				ret.Queries[name] = t
 			}
 		}
 	}
@@ -283,16 +315,114 @@ func (k *Katastasi) loadServiceStatus(key string) config.ServiceStatus {
 	return ret
 }
 
-func (k *Katastasi) funcName(component config.ServiceComponent) config.ComponentStatus {
+func (k *Katastasi) funcName(component *config.ServiceComponent) config.ComponentStatus {
 	nc := config.ComponentStatus{
 		Name:         component.Name,
-		StatusString: component.Description,
+		StatusString: "",
 		Status:       config.OK,
 	}
-	for _, cond := range component.Conditions {
-		if rand.Int31n(30) > 20 {
-			nc.Status = cond.Severity
-		}
+	q, foundQuery := k.Config.Queries[component.Query]
+	if !foundQuery {
+		nc.Status = config.Unknown
+		nc.StatusString = "Query not found"
+		log.Printf("Query %s not found %s (%s)", component.Query, component.Name, component.Parameters)
+		return nc
 	}
+
+	var tpl bytes.Buffer
+	if err := q.Execute(&tpl, component.Parameters); err != nil {
+		nc.Status = config.Unknown
+		nc.StatusString = "Error executing template: " + err.Error()
+		log.Printf("Error executing template: %v", err)
+		return nc
+	}
+	query := tpl.String()
+	log.Printf("built query: [%s] for %s with params %s", query, component.Name, component.Parameters)
+
+	v1api := v1.NewAPI(k.PrometheusClient)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	result, warnings, err := v1api.QueryRange(ctx, query, v1.Range{
+		Start: time.Now().Add(-time.Hour * 6),
+		End:   time.Now(),
+		Step:  time.Second * 60,
+	},
+	)
+	if err != nil {
+		nc.StatusString = "Error querying Prometheus: " + err.Error()
+		nc.Status = config.Unknown
+		log.Printf("Error querying Prometheus: %v", err)
+		return nc
+	}
+	if len(warnings) > 0 {
+		fmt.Printf("Warnings: %v\n", warnings)
+	}
+
+	if result.Type() == model.ValMatrix {
+		matrix := result.(model.Matrix)
+		for _, s := range matrix {
+
+			if len(s.Values) == 0 {
+				nc.StatusString = "No data returned"
+				nc.Status = config.Warning
+				log.Printf("No data returned")
+				return nc
+			}
+
+			for _, c := range component.Conditions {
+				match := buildComparator(c)
+				if c.Duration != "" {
+					duration, _ := time.ParseDuration(c.Duration)
+					from := model.TimeFromUnix(time.Now().Add(-duration).Unix())
+					for _, v := range s.Values {
+						if v.Timestamp.Add(duration).After(from) {
+							if match(v.Value) {
+								nc.StatusString = component.Description
+								nc.Status = c.Severity
+							}
+						}
+					}
+				} else {
+					lastPair := s.Values[len(s.Values)-1]
+					if match(lastPair.Value) {
+						nc.StatusString = component.Description
+						nc.Status = c.Severity
+					}
+				}
+
+			}
+
+		}
+
+		if matrix.Len() == 0 {
+			nc.StatusString = "No data returned"
+			nc.Status = config.Warning
+			log.Printf("No data returned")
+			return nc
+		}
+	} else {
+		nc.StatusString = "Query did return a wrong type"
+		nc.Status = config.Unknown
+		log.Printf("Query did return a wrong type: %v", result.Type())
+		return nc
+	}
+
 	return nc
+}
+
+func buildComparator(c config.Condition) func(value model.SampleValue) bool {
+	threshold, _ := strconv.ParseFloat(c.Threshold, 64)
+	return func(value model.SampleValue) bool {
+		switch c.Condition {
+		case config.Equal:
+			return float64(value) == threshold
+		case config.NotEqual:
+			return float64(value) != threshold
+		case config.GreaterThan:
+			return float64(value) > threshold
+		case config.LessThan:
+			return float64(value) < threshold
+		}
+		return false
+	}
 }

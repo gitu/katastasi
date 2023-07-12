@@ -18,6 +18,7 @@ import (
 var outOfCluster = flag.Bool("out-of-cluster", false, "load data via kubeconfig")
 var inCluster = flag.Bool("in-cluster", false, "load data via deployment")
 var namespaces = flag.String("namespaces", "katastasi", "namespaces to load queries from, split by comma")
+var prometheusUrl = flag.String("prometheus-url", "http://prometheus:9090", "prometheus url")
 
 var version, commit, date = "unknown", "unknown", "unknown"
 
@@ -52,7 +53,7 @@ func main() {
 		}
 	}
 
-	k := core.NewKatastasi(info, strings.Split(*namespaces, ","), config)
+	k := core.NewKatastasi(info, strings.Split(*namespaces, ","), config, *prometheusUrl)
 	k.Start()
 
 	serve.StartServer(k)

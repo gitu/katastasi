@@ -4,6 +4,7 @@ import (
 	"errors"
 	"gopkg.in/yaml.v3"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -23,6 +24,8 @@ type ServiceComponent struct {
 	Description string
 	// Parameters for this components config
 	Parameters map[string]string
+	// Query to execute for this component
+	Query string
 	// Conditions for this component to be other than healthy
 	Conditions []Condition
 }
@@ -127,7 +130,7 @@ type Service struct {
 	// Environment of this service
 	Environment string
 	// Components of this service
-	Components []ServiceComponent
+	Components []*ServiceComponent
 }
 
 type Environment struct {
@@ -158,7 +161,7 @@ type StatusPage struct {
 
 type Config struct {
 	Environments map[string]Environment
-	Queries      map[string]string
+	Queries      map[string]*template.Template
 }
 
 func (c *Config) AddService(s Service) error {
@@ -192,10 +195,10 @@ func newEnv(env string) Environment {
 
 func (c *Config) GetService(environment string, service string) Service {
 	if _, f := c.Environments[environment]; !f {
-		return Service{ID: service, Name: service, Environment: environment, Components: []ServiceComponent{}}
+		return Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
 	}
 	if _, f := c.Environments[environment].Services[service]; !f {
-		return Service{ID: service, Name: service, Environment: environment, Components: []ServiceComponent{}}
+		return Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
 	}
 	return c.Environments[environment].Services[service]
 
