@@ -29,7 +29,7 @@ metadata:
     katastasi.io: "page"
   annotations:
     katastasi.io/page-id: "petshop"
-    katastasi.io/name: "PetShop"
+    katastasi.io/name: "PetShop Status"
     katassisi.io/env: "production"
 data:
   services: petshop
@@ -42,7 +42,7 @@ metadata:
     katastasi.io: "page"
   annotations:
     katastasi.io/page-id: "petshop-fail"
-    katastasi.io/name: "PetShop no service"
+    katastasi.io/name: "PetShop status page no service"
     katassisi.io/env: "test"
 data:
   services: petshop,petshop2

@@ -12,23 +12,52 @@ const props = defineProps(['status'])
 
 <template>
   <template v-if="status === OK">
-    <CheckCircleOutline fill-color="green"></CheckCircleOutline>
+    <span class="icon-text">
+      <span class="icon has-text-info">
+      <CheckCircleOutline fill-color="green"></CheckCircleOutline>
+    </span>
+      <span>OK</span>
+    </span>
   </template>
   <template v-else-if="status === Info">
-    <InformationOutline fill-color="blue"></InformationOutline>
+    <span class="icon-text">
+      <span class="icon has-text-info">
+        <InformationOutline fill-color="blue"></InformationOutline>
+      </span>
+      <span>Info</span>
+    </span>
   </template>
   <template v-else-if="status === Warning">
-    <AlertOutline fill-color="blue"></AlertOutline>
+    <span class="icon-text">
+      <span class="icon has-text-info">
+        <AlertOutline fill-color="blue"></AlertOutline>
+      </span>
+      <span>Warning</span>
+    </span>
   </template>
   <template v-else-if="status === Critical">
-    <AlertOctagram fill-color="red"></AlertOctagram>
+    <span class="icon-text">
+      <span class="icon has-text-info">
+        <AlertOctagram fill-color="red"></AlertOctagram>
+      </span>
+      <span>Critical</span>
+    </span>
   </template>
   <template v-else-if="status === Unknown">
-    <HelpCircleOutline fill-color="grey"></HelpCircleOutline>
+    <span class="icon-text">
+      <span class="icon has-text-info">
+        <HelpCircleOutline fill-color="grey"></HelpCircleOutline>
+      </span>
+      <span>Unknown</span>
+    </span>
   </template>
   <template v-else>
-    <HelpCircleOutline fill-color="grey"></HelpCircleOutline>
-    {{ status }}
+    <span class="icon-text">
+      <span class="icon has-text-info">
+        <HelpCircleOutline fill-color="grey"></HelpCircleOutline>
+      </span>
+      <span>{{ status }}</span>
+    </span>
   </template>
 </template>
 
