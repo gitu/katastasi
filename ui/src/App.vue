@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import {RouterView} from 'vue-router'
 import {ref} from "vue";
-import type {StatusPage} from "@/types";
+import type {Environment} from "@/types";
 
 let burgerMenuHidden = true;
-let statusList = ref([] as StatusPage[]);
+let envList = ref([] as Environment[]);
 
-fetch('/api/status')
+fetch('/api/envs')
     .then(response => response.json())
     .then(data => {
-      statusList.value = data;
+      envList.value = data;
     });
 </script>
 
@@ -34,12 +34,20 @@ fetch('/api/status')
     <div id="navbarBasicExample" class="navbar-menu" :class="{'is-active':!burgerMenuHidden}">
       <div class="navbar-start">
 
-        <div class="navbar-item has-dropdown is-hoverable">
-          <router-link class="navbar-item" v-for="status in statusList" v-bind:to="'/status/'+ status.id">
-            {{ status.name }}
-          </router-link>
+        <template v-for="env in envList">
+          <div class="navbar-item has-dropdown is-hoverable">
+            <div class="navbar-item">
+              {{ env.name }}
+            </div>
 
-        </div>
+            <div class="navbar-dropdown">
+              <router-link class="navbar-item" v-for="(status, statusId) in env.statusPages"
+                           v-bind:to="'/env/'+env.name+'/status/'+ statusId">
+                {{ status }}
+              </router-link>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </nav>
