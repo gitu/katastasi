@@ -2,36 +2,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: statuspage-queries
-  labels:
-    katastasi.io: "queries"
-data:
-  ten: '10'
-  unhealthy_pods: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}"})'
-  unhealthy_pods_for_deployment: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", deployment="{{.Deployment}}"})'
-  unhealthy_pods_for_statefulset: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", statefulset="{{.StatefulSet}}"})'
-  consumergroup_lag: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}"})'
-  consumergroup_lag_for_topic: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}", topic="{{.Topic}}"})'
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: statuspage-queries-duplicate
-  labels:
-    katastasi.io: "queries"
-data:
-  unhealthy_pods: 'sum (kube_pod_status_ready{condition="false" namespace="${namespace}"})'
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: statuspage-config
   labels:
     katastasi.io: "page"
   annotations:
     katastasi.io/page-id: "petshop"
     katastasi.io/name: "PetShop Status"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   services: petshop
 ---
@@ -44,7 +21,7 @@ metadata:
   annotations:
     katastasi.io/page-id: "petshop-full"
     katastasi.io/name: "PetShop Status Full"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   services: petshop,healthy,warning
 ---
@@ -57,7 +34,7 @@ metadata:
   annotations:
     katastasi.io/page-id: "healthy"
     katastasi.io/name: "healthy status page"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   services: healthy
 ---
@@ -70,7 +47,7 @@ metadata:
   annotations:
     katastasi.io/page-id: "warning"
     katastasi.io/name: "warning status page"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   services: warning
 ---
@@ -83,7 +60,7 @@ metadata:
   annotations:
     katastasi.io/page-id: "petshop-fail"
     katastasi.io/name: "PetShop status page no service"
-    katastasi.io/env: "test"
+    katastasi.io/environment: "test"
 data:
   services: petshop,petshop2
 ---
@@ -99,7 +76,7 @@ metadata:
     katastasi.io/owner: "team-pet"
     katastasi.io/contact: "https://petshop.com/contact"
     katastasi.io/url: "https://petshop.com"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   components: |
     - name: "Availability Pods"
@@ -174,7 +151,7 @@ metadata:
     katastasi.io/owner: "team-pet"
     katastasi.io/contact: "https://petshop.com/contact"
     katastasi.io/url: "https://petshop.com"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   components: |
     - name: "Always ok"
@@ -204,7 +181,7 @@ metadata:
     katastasi.io/owner: "team-pet"
     katastasi.io/contact: "https://petshop.com/contact"
     katastasi.io/url: "https://petshop.com"
-    katastasi.io/env: "production"
+    katastasi.io/environment: "production"
 data:
   components: |
     - name: "Always ok"

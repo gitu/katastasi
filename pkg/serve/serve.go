@@ -106,12 +106,13 @@ func StartServer(k *core.Katastasi) {
 		MaxAge:     30 * 24 * 60 * 60,
 	}))
 
-	app.Use("/", filesystem.New(filesystem.Config{
-		Root:       http.FS(ui.DistDir),
-		PathPrefix: "dist",
-		Browse:     false,
-		Index:      "index.html",
-		MaxAge:     0,
+	app.Use("*", filesystem.New(filesystem.Config{
+		Root:         http.FS(ui.DistDir),
+		PathPrefix:   "dist",
+		Browse:       false,
+		Index:        "index.html",
+		NotFoundFile: "dist/index.html",
+		MaxAge:       0,
 	}))
 
 	err := app.Listen(":1323")

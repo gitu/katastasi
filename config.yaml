@@ -1,0 +1,52 @@
+prometheus:
+  url: 'http://localhost:9090/'
+  ## prometheus-k8s.monitoring.svc.clster.local for in-cluster
+cache:
+  ttl: 12s
+queries:
+  ten: '10'
+  unhealthy_pods: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}"})'
+  unhealthy_pods_for_deployment: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", deployment="{{.Deployment}}"})'
+  unhealthy_pods_for_statefulset: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", statefulset="{{.StatefulSet}}"})'
+  consumergroup_lag: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}"})'
+  consumergroup_lag_for_topic: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}", topic="{{.Topic}}"})'
+autoload:
+  # do we want to fetch the config from configmaps?
+  active: true
+  kubernetes:
+    ## is katastasi running in-cluster?
+    in_cluster: false
+  namespaces:
+    pages:
+      - default
+    services:
+      - default
+
+pages:
+  - id: manual-config-page
+    name: Manual Config Page
+    environment: test
+    services:
+      - petshop
+      - manual-config
+
+services:
+  - id: manual-config
+    name: "Manual Config Service"
+    owner: team-pet
+    contact: https://petshop.com/contact
+    url: https://petshop.com
+    environment: test
+    namespace: default
+    components:
+      - name: "Warning"
+        query: "ten"
+        description: "This warning is always on"
+        conditions:
+          - severity: "warning"
+            condition: "gt"
+            threshold: "5"
+          - severity: "critical"
+            condition: "gt"
+            threshold: "10"
+            duration: "5m"

@@ -1,24 +1,16 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
 	"github.com/gitu/katastasi/pkg/core"
 	"github.com/gitu/katastasi/pkg/serve"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-	"path/filepath"
-	"strings"
+	"github.com/spf13/viper"
+	"log"
 
 	// load all auth plugins!
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
-
-var outOfCluster = flag.Bool("out-of-cluster", false, "load data via kubeconfig")
-var inCluster = flag.Bool("in-cluster", false, "load data via deployment")
-var namespaces = flag.String("namespaces", "katastasi", "namespaces to load queries from, split by comma")
-var prometheusUrl = flag.String("prometheus-url", "http://prometheus:9090", "prometheus url")
 
 var version, commit, date = "unknown", "unknown", "unknown"
 
@@ -31,31 +23,37 @@ func main() {
 		"  built:   " + date + ""
 	fmt.Println(info)
 
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-	flag.Parse()
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/katastasi/")
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("KATASTASI")
 
-	var config *rest.Config
-	var err error
-	if *outOfCluster {
-		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-	} else {
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			panic(err.Error())
-		}
+	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.host", "0.0.0.0")
+	viper.SetDefault("prometheus.url", "http://localhost:9090")
+	viper.SetDefault("cache.ttl", "1m")
+	viper.SetDefault("queries", map[string]string{"one": "1"})
+	viper.SetDefault("autoload", true)
+	viper.SetDefault("autoload.kuberentes.config", "")
+	viper.SetDefault("autoload.kuberentes.in_cluster", true)
+	viper.SetDefault("autoload.namespaces.pages", []string{"changeme"})
+	viper.SetDefault("autoload.namespaces.services", []string{"changeme"})
+
+	if err := viper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
 
-	k := core.NewKatastasi(info, strings.Split(*namespaces, ","), config, *prometheusUrl)
-	k.Start()
+	k := core.NewKatastasi(info)
+	k.ReloadConfig()
+
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		log.Printf("Config file changed: %s", e.Name)
+
+		k.ReloadConfig()
+	})
+	viper.WatchConfig()
 
 	serve.StartServer(k)
-
 }
