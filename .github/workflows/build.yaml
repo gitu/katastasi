@@ -56,7 +56,8 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('ui/package-lock.json') }}
 
       - name: install browsers
-        run: npx playwright install
+        working-directory: ui
+        run: npx playwright install chromium
 
       - name: run npm e2e tests
         run: npm run test:e2e
