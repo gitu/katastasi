@@ -17,7 +17,7 @@
     "bulma": "^0.9.4",
     "pinia": "^2.1.6",
     "vue": "^3.3.2",
-    "vue-facing-decorator": "^2.1.20",
+    "vue-facing-decorator": "^3.0.0",
     "vue-router": "^4.2.4",
     "vue3-material-design-icons-ts": "^5.0.10",
     "vuetify": "^3.3.10"
