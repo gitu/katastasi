@@ -25,7 +25,7 @@ const hasOkServices = computed(() => {
   <section class="columns  p-6">
     <div class="column">
       <div class="container block">
-        <div class="title">{{ props.status.name }}</div>
+        <div class="title" id="status-page-title">{{ props.status.name }}</div>
         <div class="content">
           <status-icon :status="props.status.overallStatus"></status-icon>
         </div>
