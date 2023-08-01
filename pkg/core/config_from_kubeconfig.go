@@ -170,7 +170,7 @@ func kubeClientConfig() *rest.Config {
 
 	var dataConfig *rest.Config
 	var err error
-	if viper.GetBool("kubernetes.inCluster") == false {
+	if viper.GetBool("autoload.kuberentes.in_cluster") == false {
 		dataConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
 			panic(err.Error())
