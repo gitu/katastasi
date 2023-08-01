@@ -1,0 +1,11 @@
+- name: "Availability Pods"
+  query: "unhealthy_pods"
+  description: "There are unhealthy pods in the environment"
+  conditions:
+    - severity: "warning"
+      condition: "gt"
+      threshold: "0"
+    - severity: "critical"
+      condition: "gt"
+      threshold: "0"
+      duration: "5m"
