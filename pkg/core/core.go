@@ -35,7 +35,7 @@ type Katastasi struct {
 	mu               sync.Mutex
 	Config           *config.Config
 	KataStatus       *KataStatus
-	StatusCache      *ttlcache.Cache[string, config.ServiceStatus]
+	StatusCache      *ttlcache.Cache[string, *config.ServiceStatus]
 	PrometheusClient papi.Client
 }
 
@@ -52,7 +52,7 @@ func NewKatastasi(info string, queryNamespaces []string, dataConfig *rest.Config
 		QueryNamespaces: queryNamespaces,
 		DataConfig:      dataConfig,
 		Config: &config.Config{
-			Environments: make(map[string]config.Environment),
+			Environments: make(map[string]*config.Environment),
 			Queries:      make(map[string]*template.Template),
 		},
 		KataStatus: &KataStatus{
@@ -74,13 +74,13 @@ func (k *Katastasi) Start() {
 }
 
 func (k *Katastasi) buildAndStartCache() {
-	loader := ttlcache.LoaderFunc[string, config.ServiceStatus](
-		func(c *ttlcache.Cache[string, config.ServiceStatus], key string) *ttlcache.Item[string, config.ServiceStatus] {
+	loader := ttlcache.LoaderFunc[string, *config.ServiceStatus](
+		func(c *ttlcache.Cache[string, *config.ServiceStatus], key string) *ttlcache.Item[string, *config.ServiceStatus] {
 			return c.Set(key, k.loadServiceStatus(key), ttlcache.DefaultTTL)
 		})
-	k.StatusCache = ttlcache.New[string, config.ServiceStatus](
-		ttlcache.WithLoader[string, config.ServiceStatus](loader),
-		ttlcache.WithTTL[string, config.ServiceStatus](5*time.Second),
+	k.StatusCache = ttlcache.New[string, *config.ServiceStatus](
+		ttlcache.WithLoader[string, *config.ServiceStatus](loader),
+		ttlcache.WithTTL[string, *config.ServiceStatus](5*time.Second),
 	)
 	go k.StatusCache.Start()
 }
@@ -89,7 +89,7 @@ func (k *Katastasi) reloadConfig() error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	ret := &config.Config{
-		Environments: make(map[string]config.Environment),
+		Environments: make(map[string]*config.Environment),
 		Queries:      make(map[string]*template.Template),
 	}
 	clientSet, err := kubernetes.NewForConfig(k.DataConfig)
@@ -162,7 +162,7 @@ func (k *Katastasi) addServicesToConfig(ret *config.Config, clientSet *kubernete
 			service.Components = components
 		}
 
-		err := ret.AddService(service)
+		err := ret.AddService(&service)
 		if err != nil {
 			log.Printf("Error adding service %s for ConfigMap %s in %s: %s", service.Name, configMap.Name, configMap.Namespace, err.Error())
 		}
@@ -180,16 +180,7 @@ func (k *Katastasi) addQueriesToConfig(ret *config.Config, clientSet *kubernetes
 		}
 		for _, configMap := range list.Items {
 			for name, query := range configMap.Data {
-				if _, f := ret.Queries[name]; f {
-					log.Printf("Duplicate query name %s in %s (%s)", name, configMap.Name, configMap.Namespace)
-					continue
-				}
-				t, err := template.New(name).Parse(query)
-				if err != nil {
-					log.Printf("Error parsing query %s for ConfigMap %s in %s: %s", name, configMap.Name, configMap.Namespace, err.Error())
-					continue
-				}
-				ret.Queries[name] = t
+				ret.AddQuery(name, query, fmt.Sprintf("%s/%s", configMap.Namespace, configMap.Name))
 			}
 		}
 	}
@@ -226,7 +217,7 @@ func (k *Katastasi) addStatusPagesToConfig(ret *config.Config, clientSet *kubern
 		s := configMap.Data["services"]
 		page.Services = strings.Split(s, ",")
 
-		err := ret.AddStatusPage(page)
+		err := ret.AddStatusPage(&page)
 		if err != nil {
 			log.Printf("Error adding status page %s for ConfigMap %s in %: %s", page.Name, configMap.Namespace, configMap.Name, err.Error())
 		}
@@ -256,7 +247,7 @@ func (k *Katastasi) GetPageStatus(env string, page string) config.PageStatus {
 	p := config.PageStatus{
 		Status:     config.Unknown,
 		LastUpdate: time.Now(),
-		Services:   map[string]config.ServiceStatus{},
+		Services:   map[string]*config.ServiceStatus{},
 	}
 	if _, f := k.Config.Environments[env]; !f {
 		return p
@@ -276,7 +267,7 @@ func (k *Katastasi) GetPageStatus(env string, page string) config.PageStatus {
 	return p
 }
 
-func (k *Katastasi) GetStatusOfService(env string, service string) config.ServiceStatus {
+func (k *Katastasi) GetStatusOfService(env string, service string) *config.ServiceStatus {
 	s := k.StatusCache.Get(ToCacheKey(env, service))
 	return s.Value()
 }
@@ -285,16 +276,16 @@ func ToCacheKey(env string, service string) string {
 	return env + "|" + service
 }
 
-func (k *Katastasi) loadServiceStatus(key string) config.ServiceStatus {
+func (k *Katastasi) loadServiceStatus(key string) *config.ServiceStatus {
 	keyval := strings.SplitN(key, "|", 2)
 	env := keyval[0]
 	service := keyval[1]
 
-	ret := config.ServiceStatus{
+	ret := &config.ServiceStatus{
 		ID:         service,
 		Status:     config.Unknown,
 		LastUpdate: time.Now(),
-		Components: make([]config.ComponentStatus, 0),
+		Components: make([]*config.ComponentStatus, 0),
 	}
 
 	if _, f := k.Config.Environments[env]; !f {
@@ -305,7 +296,7 @@ func (k *Katastasi) loadServiceStatus(key string) config.ServiceStatus {
 	}
 
 	for _, component := range k.Config.Environments[env].Services[service].Components {
-		nc := k.funcName(component)
+		nc := k.loadComponentStatus(component)
 		if nc.Status.IsHigherThan(ret.Status) {
 			ret.Status = nc.Status
 		}
@@ -315,8 +306,8 @@ func (k *Katastasi) loadServiceStatus(key string) config.ServiceStatus {
 	return ret
 }
 
-func (k *Katastasi) funcName(component *config.ServiceComponent) config.ComponentStatus {
-	nc := config.ComponentStatus{
+func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *config.ComponentStatus {
+	nc := &config.ComponentStatus{
 		Name:         component.Name,
 		StatusString: "",
 		Status:       config.OK,
@@ -410,19 +401,28 @@ func (k *Katastasi) funcName(component *config.ServiceComponent) config.Componen
 	return nc
 }
 
-func buildComparator(c config.Condition) func(value model.SampleValue) bool {
+func buildComparator(c *config.Condition) func(value model.SampleValue) bool {
 	threshold, _ := strconv.ParseFloat(c.Threshold, 64)
-	return func(value model.SampleValue) bool {
-		switch c.Condition {
-		case config.Equal:
+
+	switch c.Condition {
+	case config.Equal:
+		return func(value model.SampleValue) bool {
 			return float64(value) == threshold
-		case config.NotEqual:
+		}
+	case config.NotEqual:
+		return func(value model.SampleValue) bool {
 			return float64(value) != threshold
-		case config.GreaterThan:
+		}
+	case config.GreaterThan:
+		return func(value model.SampleValue) bool {
 			return float64(value) > threshold
-		case config.LessThan:
+		}
+	case config.LessThan:
+		return func(value model.SampleValue) bool {
 			return float64(value) < threshold
 		}
+	}
+	return func(value model.SampleValue) bool {
 		return false
 	}
 }

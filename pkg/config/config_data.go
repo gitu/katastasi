@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"gopkg.in/yaml.v3"
+	"log"
 	"strings"
 	"text/template"
 	"time"
@@ -27,7 +28,7 @@ type ServiceComponent struct {
 	// Query to execute for this component
 	Query string
 	// Conditions for this component to be other than healthy
-	Conditions []Condition
+	Conditions []*Condition
 }
 
 type Conditional string
@@ -62,10 +63,13 @@ func (c Conditional) String() string {
 	return string(c)
 }
 
-func (c Conditional) UnmarshalYAML(value *yaml.Node) error {
-	c = StringToConditional[strings.ToLower(value.Value)]
-	if c == "" {
+func (c *Conditional) UnmarshalYAML(value *yaml.Node) error {
+	var cc Conditional
+	cc = StringToConditional[strings.ToLower(value.Value)]
+	if cc == "" {
 		return errors.New("invalid conditional")
+	} else {
+		*c = *&cc
 	}
 	return nil
 }
@@ -111,8 +115,14 @@ func (s Severity) GetPriority() int {
 func (s Severity) String() string {
 	return string(s)
 }
-func (s Severity) UnmarshalYAML(value *yaml.Node) error {
-	s = StringToSeverity[strings.ToLower(value.Value)]
+func (s *Severity) UnmarshalYAML(value *yaml.Node) error {
+	var ss Severity
+	ss = StringToSeverity[strings.ToLower(value.Value)]
+	if ss == "" {
+		return errors.New("invalid severity")
+	} else {
+		*s = *&ss
+	}
 	return nil
 }
 
@@ -137,9 +147,9 @@ type Environment struct {
 	// ID of the environment
 	ID string
 	// Services in this environment by id
-	Services map[string]Service
+	Services map[string]*Service
 	// Status pages in this environment by id
-	StatusPages map[string]StatusPage
+	StatusPages map[string]*StatusPage
 }
 
 type StatusPage struct {
@@ -160,11 +170,11 @@ type StatusPage struct {
 }
 
 type Config struct {
-	Environments map[string]Environment
+	Environments map[string]*Environment
 	Queries      map[string]*template.Template
 }
 
-func (c *Config) AddService(s Service) error {
+func (c *Config) AddService(s *Service) error {
 	if _, f := c.Environments[s.Environment]; !f {
 		c.Environments[s.Environment] = newEnv(s.Environment)
 	}
@@ -175,7 +185,21 @@ func (c *Config) AddService(s Service) error {
 	return nil
 }
 
-func (c *Config) AddStatusPage(s StatusPage) error {
+func (c *Config) AddQuery(name, expr, source string) {
+	if _, f := c.Queries[name]; f {
+		log.Printf("Duplicate query name %s in %s", name, source)
+		return
+	}
+
+	t, err := template.New(name).Parse(expr)
+	if err != nil {
+		log.Printf("Error parsing query %s in %s: %s", name, source, err.Error())
+		return
+	}
+	c.Queries[name] = t
+}
+
+func (c *Config) AddStatusPage(s *StatusPage) error {
 	if _, f := c.Environments[s.Environment]; !f {
 		c.Environments[s.Environment] = newEnv(s.Environment)
 	}
@@ -183,22 +207,23 @@ func (c *Config) AddStatusPage(s StatusPage) error {
 		return errors.New("status page " + s.ID + " already exists in environment " + s.Environment)
 	}
 	c.Environments[s.Environment].StatusPages[s.ID] = s
+	log.Printf("Added status page %s to environment %s", s.ID, s.Environment)
 	return nil
 }
 
-func newEnv(env string) Environment {
-	return Environment{ID: env,
-		StatusPages: map[string]StatusPage{},
-		Services:    map[string]Service{},
+func newEnv(env string) *Environment {
+	return &Environment{ID: env,
+		StatusPages: map[string]*StatusPage{},
+		Services:    map[string]*Service{},
 	}
 }
 
-func (c *Config) GetService(environment string, service string) Service {
+func (c *Config) GetService(environment string, service string) *Service {
 	if _, f := c.Environments[environment]; !f {
-		return Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
+		return &Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
 	}
 	if _, f := c.Environments[environment].Services[service]; !f {
-		return Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
+		return &Service{ID: service, Name: service, Environment: environment, Components: []*ServiceComponent{}}
 	}
 	return c.Environments[environment].Services[service]
 
@@ -221,7 +246,7 @@ type ServiceStatus struct {
 	// Last update of this service
 	LastUpdate time.Time
 	// Components of this service
-	Components []ComponentStatus
+	Components []*ComponentStatus
 }
 
 type PageStatus struct {
@@ -232,5 +257,14 @@ type PageStatus struct {
 	// Last update of this page
 	LastUpdate time.Time
 	// Services of this page
-	Services map[string]ServiceStatus
+	Services map[string]*ServiceStatus
+}
+
+func ParseServiceComponents(data []byte) ([]*ServiceComponent, error) {
+	var components []*ServiceComponent
+	err := yaml.Unmarshal(data, &components)
+	if err != nil {
+		return nil, err
+	}
+	return components, nil
 }

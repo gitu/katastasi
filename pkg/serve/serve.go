@@ -11,10 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"log"
 	"net/http"
-	"time"
 )
-
-var lastUpdate = time.Now() // time.UnixMilli(0)
 
 func StartServer(k *core.Katastasi) {
 
@@ -64,7 +61,7 @@ func StartServer(k *core.Katastasi) {
 	})
 
 	app.Get("/api/envs", func(c *fiber.Ctx) error {
-		environments := []types.Environment{}
+		var environments []types.Environment
 		for _, env := range k.Config.Environments {
 			e := types.Environment{
 				Id:          env.ID,

@@ -6,6 +6,7 @@ metadata:
   labels:
     katastasi.io: "queries"
 data:
+  ten: '10'
   unhealthy_pods: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}"})'
   unhealthy_pods_for_deployment: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", deployment="{{.Deployment}}"})'
   unhealthy_pods_for_statefulset: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", statefulset="{{.StatefulSet}}"})'
@@ -30,9 +31,48 @@ metadata:
   annotations:
     katastasi.io/page-id: "petshop"
     katastasi.io/name: "PetShop Status"
-    katassisi.io/env: "production"
+    katastasi.io/env: "production"
 data:
   services: petshop
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statuspage-config-2
+  labels:
+    katastasi.io: "page"
+  annotations:
+    katastasi.io/page-id: "petshop-full"
+    katastasi.io/name: "PetShop Status Full"
+    katastasi.io/env: "production"
+data:
+  services: petshop,healthy,warning
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statuspage-config-healthy
+  labels:
+    katastasi.io: "page"
+  annotations:
+    katastasi.io/page-id: "healthy"
+    katastasi.io/name: "healthy status page"
+    katastasi.io/env: "production"
+data:
+  services: healthy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statuspage-config-warning
+  labels:
+    katastasi.io: "page"
+  annotations:
+    katastasi.io/page-id: "warning"
+    katastasi.io/name: "warning status page"
+    katastasi.io/env: "production"
+data:
+  services: warning
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -43,7 +83,7 @@ metadata:
   annotations:
     katastasi.io/page-id: "petshop-fail"
     katastasi.io/name: "PetShop status page no service"
-    katassisi.io/env: "test"
+    katastasi.io/env: "test"
 data:
   services: petshop,petshop2
 ---
@@ -59,7 +99,7 @@ metadata:
     katastasi.io/owner: "team-pet"
     katastasi.io/contact: "https://petshop.com/contact"
     katastasi.io/url: "https://petshop.com"
-    katassisi.io/env: "production"
+    katastasi.io/env: "production"
 data:
   components: |
     - name: "Availability Pods"
@@ -118,7 +158,67 @@ data:
   components: |
     - name: "Availability Pods"
       queritical"
-            condition: "gt"
-            threshold: "0"
-            duration: "5m"
+          condition: "gt"
+          threshold: "0"
+          duration: "5m"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthy-service-config
+  labels:
+    katastasi.io: "service"
+  annotations:
+    katastasi.io/service-id: "healthy"
+    katastasi.io/name: "healthy service"
+    katastasi.io/owner: "team-pet"
+    katastasi.io/contact: "https://petshop.com/contact"
+    katastasi.io/url: "https://petshop.com"
+    katastasi.io/env: "production"
+data:
+  components: |
+    - name: "Always ok"
+      query: "ten"
+      description: "There are unhealthy pods in the environment"
+    - name: "Always ok with condition"
+      query: "ten"
+      description: "There are unhealthy pods in the environment"
+      conditions:
+        - severity: "warning"
+          condition: "gt"
+          threshold: "10"
+        - severity: "critical"
+          condition: "gt"
+          threshold: "10"
+          duration: "5m"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warning-service-config
+  labels:
+    katastasi.io: "service"
+  annotations:
+    katastasi.io/service-id: "warning"
+    katastasi.io/name: "warning service"
+    katastasi.io/owner: "team-pet"
+    katastasi.io/contact: "https://petshop.com/contact"
+    katastasi.io/url: "https://petshop.com"
+    katastasi.io/env: "production"
+data:
+  components: |
+    - name: "Always ok"
+      query: "ten"
+      description: "There are unhealthy pods in the environment"
+    - name: "Warning"
+      query: "ten"
+      description: "This warning is always on"
+      conditions:
+        - severity: "warning"
+          condition: "gt"
+          threshold: "5"
+        - severity: "critical"
+          condition: "gt"
+          threshold: "10"
+          duration: "5m"
 
