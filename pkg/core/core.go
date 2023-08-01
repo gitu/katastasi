@@ -219,7 +219,7 @@ func (k *Katastasi) addStatusPagesToConfig(ret *config.Config, clientSet *kubern
 
 		err := ret.AddStatusPage(&page)
 		if err != nil {
-			log.Printf("Error adding status page %s for ConfigMap %s in %: %s", page.Name, configMap.Namespace, configMap.Name, err.Error())
+			log.Printf("Error adding status page %s for ConfigMap %s in %s: %s", page.Name, configMap.Namespace, configMap.Name, err.Error())
 		}
 	}
 	return nil
