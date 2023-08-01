@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: katastasi-service-account
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: configmap-reader
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get", "watch", "list" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-configmaps
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: katastasi-service-account
+    namespace: default
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: katastasi-config
+  labels:
+    katastasi.io: "config"
+data:
+  config.yml: |
+    prometheus:
+      url: 'http://prometheus-k8s.monitoring.svc.cluster.local:9090/'
+    cache:
+      ttl: 12s
+    queries:
+      ten: '10'
+      unhealthy_pods: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}"})'
+      unhealthy_pods_for_deployment: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", deployment="{{.Deployment}}"})'
+      unhealthy_pods_for_statefulset: 'sum (kube_pod_status_ready{condition="false", namespace="{{.Namespace}}", statefulset="{{.StatefulSet}}"})'
+      consumergroup_lag: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}"})'
+      consumergroup_lag_for_topic: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}", topic="{{.Topic}}"})'
+    autoload:
+      active: true
+      namespaces:
+        pages:
+          - default
+        services:
+          - default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: katastasi-deployment
+  labels:
+    app: katastasi
+spec:
+  ## we should generally let katastasi run only with one replica, as it doesn't use a distributed cache
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: katastasi
+  template:
+    metadata:
+      labels:
+        app: katastasi
+    spec:
+      serviceAccountName: katastasi-service-account
+      containers:
+        - name: katastasi
+          image: ghcr.io/gitu/katastasi:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 1323
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/katastasi/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: katastasi-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: katastasi-service
+  labels:
+    app: katastasi
+spec:
+  ports:
+    - port: 1323
+      targetPort: 1323
+  selector:
+    app: katastasi
