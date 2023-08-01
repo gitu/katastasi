@@ -154,35 +154,24 @@ type Environment struct {
 
 type StatusPage struct {
 	// Status page ID
-	ID string
+	ID string `yaml:"id"`
 	// Name of the status page
-	Name string
+	Name string `yaml:"name"`
 	// Environment of this status page
-	Environment string
+	Environment string `yaml:"environment"`
 	// URL of the page
-	URL string
+	URL string `yaml:"url"`
 	// Contact for this service - can be a URL or email
-	Contact string
+	Contact string `yaml:"contact"`
 	// Owner of this service - can be a team name or email
-	Owner string
+	Owner string `yaml:"owner"`
 	// Services in this status page
-	Services []string
+	Services []string `yaml:"services"`
 }
 
 type Config struct {
 	Environments map[string]*Environment
 	Queries      map[string]*template.Template
-}
-
-func (c *Config) AddService(s *Service) error {
-	if _, f := c.Environments[s.Environment]; !f {
-		c.Environments[s.Environment] = newEnv(s.Environment)
-	}
-	if _, f := c.Environments[s.Environment].Services[s.ID]; f {
-		return errors.New("service " + s.ID + " already exists in environment " + s.Environment)
-	}
-	c.Environments[s.Environment].Services[s.ID] = s
-	return nil
 }
 
 func (c *Config) AddQuery(name, expr, source string) {
@@ -197,18 +186,6 @@ func (c *Config) AddQuery(name, expr, source string) {
 		return
 	}
 	c.Queries[name] = t
-}
-
-func (c *Config) AddStatusPage(s *StatusPage) error {
-	if _, f := c.Environments[s.Environment]; !f {
-		c.Environments[s.Environment] = newEnv(s.Environment)
-	}
-	if _, f := c.Environments[s.Environment].StatusPages[s.ID]; f {
-		return errors.New("status page " + s.ID + " already exists in environment " + s.Environment)
-	}
-	c.Environments[s.Environment].StatusPages[s.ID] = s
-	log.Printf("Added status page %s to environment %s", s.ID, s.Environment)
-	return nil
 }
 
 func newEnv(env string) *Environment {
@@ -227,6 +204,36 @@ func (c *Config) GetService(environment string, service string) *Service {
 	}
 	return c.Environments[environment].Services[service]
 
+}
+
+func (c *Config) SetService(s *Service) {
+	if _, f := c.Environments[s.Environment]; !f {
+		c.Environments[s.Environment] = newEnv(s.Environment)
+	}
+	c.Environments[s.Environment].Services[s.ID] = s
+	log.Printf("Set service %s to environment %s", s.ID, s.Environment)
+}
+
+func (c *Config) RemoveService(s *Service) {
+	if _, f := c.Environments[s.Environment]; !f {
+		return
+	}
+	delete(c.Environments[s.Environment].Services, s.ID)
+}
+
+func (c *Config) SetStatusPage(sp *StatusPage) {
+	if _, f := c.Environments[sp.Environment]; !f {
+		c.Environments[sp.Environment] = newEnv(sp.Environment)
+	}
+	c.Environments[sp.Environment].StatusPages[sp.ID] = sp
+	log.Printf("Set status page %s to environment %s", sp.ID, sp.Environment)
+}
+
+func (c *Config) RemoveStatusPage(sp *StatusPage) {
+	if _, f := c.Environments[sp.Environment]; !f {
+		return
+	}
+	delete(c.Environments[sp.Environment].StatusPages, sp.ID)
 }
 
 type ComponentStatus struct {
