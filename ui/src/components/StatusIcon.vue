@@ -1,11 +1,6 @@
 <script setup lang="ts">
 
 import {Critical, Info, OK, Unknown, Warning} from "@/types";
-import CheckCircleOutline from "vue-material-design-icons/CheckCircleOutline.vue";
-import InformationOutline from "vue-material-design-icons/InformationOutline.vue";
-import AlertOutline from "vue-material-design-icons/AlertOutline.vue";
-import AlertOctagram from "vue-material-design-icons/AlertOctagramOutline.vue";
-import HelpCircleOutline from "vue-material-design-icons/HelpCircleOutline.vue";
 
 const props = defineProps(['status'])
 </script>

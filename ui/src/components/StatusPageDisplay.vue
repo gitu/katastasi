@@ -5,7 +5,6 @@ import type {PropType} from "vue";
 import {computed, ref} from "vue";
 import StatusIcon from "@/components/StatusIcon.vue";
 import StatusServiceDisplay from "@/components/StatusServiceDisplay.vue";
-import ArrowExpand from "vue-material-design-icons/ArrowExpand.vue";
 
 const props = defineProps({
   status: {

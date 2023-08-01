@@ -2,9 +2,7 @@
 import type {Service} from "@/types";
 import {OK} from "@/types";
 import type {PropType} from "vue";
-import {computed, ref} from "vue";
 import StatusIcon from "@/components/StatusIcon.vue";
-import ArrowExpand from "vue-material-design-icons/ArrowExpand.vue";
 
 
 const props = defineProps({
