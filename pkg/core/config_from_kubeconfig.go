@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	toolsWatch "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/homedir"
-	"log"
+	"log/slog"
 	"path/filepath"
 	"strings"
 )
@@ -70,7 +70,7 @@ func watchConfigMaps(ctx context.Context, clientSet *kubernetes.Clientset, names
 	}
 	watcher, err := toolsWatch.NewRetryWatcher("1", &cache.ListWatch{WatchFunc: watchFunc})
 	if err != nil {
-		log.Printf("Error creating watcher for ConfigMaps in %s: %s", namespace, err.Error())
+		slog.Error("Error creating watcher for ConfigMaps", "namespace", namespace, "error", err.Error())
 		return watcher, err
 	}
 	go func() {
@@ -78,7 +78,7 @@ func watchConfigMaps(ctx context.Context, clientSet *kubernetes.Clientset, names
 			configMap := event.Object.(*corev1.ConfigMap)
 			configMapHandler(event.Type, configMap)
 		}
-		log.Printf("Watcher for ConfigMaps in %s stopped", namespace)
+		slog.Debug("Watcher for ConfigMaps stopped", "namespace", namespace)
 	}()
 	return watcher, nil
 }
@@ -106,7 +106,11 @@ func (kw *kubeWatcher) addServiceToConfig(event watch.EventType, configMap *core
 		var components []*config.ServiceComponent
 		err := yaml.Unmarshal([]byte(componentData), &components)
 		if err != nil {
-			log.Printf("Error parsing service components %s for ConfigMap %s in %s: %s", service.Name, configMap.Name, configMap.Namespace, err.Error())
+			slog.Error("Error parsing service components",
+				"service", service.ID,
+				"component", configMap.Name,
+				"namespace", configMap.Namespace,
+				"error", err.Error())
 			return
 		}
 
@@ -170,7 +174,7 @@ func kubeClientConfig() *rest.Config {
 
 	var dataConfig *rest.Config
 	var err error
-	if viper.GetBool("autoload.kuberentes.in_cluster") == false {
+	if viper.GetBool("autoload.kubernetes.in_cluster") == false {
 		dataConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
 			panic(err.Error())

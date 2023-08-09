@@ -6,7 +6,7 @@ import (
 	"github.com/gitu/katastasi/pkg/core"
 	"github.com/gitu/katastasi/pkg/serve"
 	"github.com/spf13/viper"
-	"log"
+	"log/slog"
 
 	// load all auth plugins!
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -21,7 +21,7 @@ func main() {
 		"  version: " + version + "\n" +
 		"  commit:  " + commit + "\n" +
 		"  built:   " + date + ""
-	fmt.Println(info)
+	slog.Info("katastasi", "version", version, "commit", commit, "built", date)
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -36,8 +36,8 @@ func main() {
 	viper.SetDefault("cache.ttl", "1m")
 	viper.SetDefault("queries", map[string]string{"one": "1"})
 	viper.SetDefault("autoload", true)
-	viper.SetDefault("autoload.kuberentes.config", "")
-	viper.SetDefault("autoload.kuberentes.in_cluster", true)
+	viper.SetDefault("autoload.kubernetes.config", "")
+	viper.SetDefault("autoload.kubernetes.in_cluster", true)
 	viper.SetDefault("autoload.namespaces.pages", []string{"changeme"})
 	viper.SetDefault("autoload.namespaces.services", []string{"changeme"})
 
@@ -49,7 +49,7 @@ func main() {
 	k.ReloadConfig()
 
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Printf("Config file changed: %s", e.Name)
+		slog.Info("Config file changed: ", "event.Name", e.Name)
 
 		k.ReloadConfig()
 	})
