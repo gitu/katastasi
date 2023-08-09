@@ -131,7 +131,10 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 			if len(s.Values) == 0 {
 				nc.StatusString = "No data returned"
 				nc.Status = config.Warning
-				slog.Info("No data returned", query, component.Name, component.Parameters)
+				slog.Info("No data returned",
+					"query", query,
+					"component", component.Name,
+					"params", component.Parameters)
 				return nc
 			}
 
@@ -163,7 +166,10 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 		if matrix.Len() == 0 {
 			nc.StatusString = "No data returned"
 			nc.Status = config.Warning
-			slog.Info("No data returned", query, component.Name, component.Parameters)
+			slog.Info("No data returned",
+				"query", query,
+				"component", component.Name,
+				"params", component.Parameters)
 			return nc
 		}
 	} else {
