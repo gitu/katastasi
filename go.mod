@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gofiber/fiber/v2 v2.48.0
-	github.com/gzuidhof/tygo v0.2.5
+	github.com/gzuidhof/tygo v0.2.8
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
