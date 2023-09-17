@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/gitu/katastasi/pkg/config"
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -22,11 +21,13 @@ import (
 type kubeWatcher struct {
 	c        *config.Config
 	watchers []*toolsWatch.RetryWatcher
+	logger   *slog.Logger
 }
 
-func newKubeWatcher(c *config.Config) *kubeWatcher {
+func newKubeWatcher(c *config.Config, logger *slog.Logger) *kubeWatcher {
 	return &kubeWatcher{
-		c: c,
+		c:      c,
+		logger: logger,
 	}
 }
 
@@ -37,14 +38,14 @@ func (kw *kubeWatcher) start() error {
 	}
 
 	for _, namespace := range viper.GetStringSlice("autoload.namespaces.services") {
-		watcher, err := watchConfigMaps(context.Background(), clientSet, namespace, "katastasi.io=service", kw.addServiceToConfig)
+		watcher, err := watchConfigMaps(context.Background(), clientSet, namespace, "katastasi.io=service", kw.logger, kw.addServiceToConfig)
 		if err == nil {
 			kw.watchers = append(kw.watchers, watcher)
 		}
 
 	}
 	for _, namespace := range viper.GetStringSlice("autoload.namespaces.pages") {
-		watcher, err := watchConfigMaps(context.Background(), clientSet, namespace, "katastasi.io=page", kw.addStatusPagesToConfig)
+		watcher, err := watchConfigMaps(context.Background(), clientSet, namespace, "katastasi.io=page", kw.logger, kw.addStatusPagesToConfig)
 		if err == nil {
 			kw.watchers = append(kw.watchers, watcher)
 		}
@@ -59,8 +60,7 @@ func (kw *kubeWatcher) stop() {
 	}
 }
 
-func watchConfigMaps(ctx context.Context, clientSet *kubernetes.Clientset, namespace string, labelSelector string, configMapHandler func(event watch.EventType, configMap *corev1.ConfigMap)) (*toolsWatch.RetryWatcher, error) {
-
+func watchConfigMaps(ctx context.Context, clientSet *kubernetes.Clientset, namespace string, labelSelector string, logger *slog.Logger, configMapHandler func(event watch.EventType, configMap *corev1.ConfigMap)) (*toolsWatch.RetryWatcher, error) {
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
 		timeOut := int64(60)
 		return clientSet.CoreV1().ConfigMaps(namespace).Watch(ctx, metav1.ListOptions{
@@ -70,15 +70,16 @@ func watchConfigMaps(ctx context.Context, clientSet *kubernetes.Clientset, names
 	}
 	watcher, err := toolsWatch.NewRetryWatcher("1", &cache.ListWatch{WatchFunc: watchFunc})
 	if err != nil {
-		slog.Error("Error creating watcher for ConfigMaps", "namespace", namespace, "error", err.Error())
+		logger.Error("Error creating watcher for ConfigMaps", "namespace", namespace, "error", err.Error())
 		return watcher, err
 	}
+	logger.Debug("Watcher for ConfigMaps started", "namespace", namespace, "labelSelector", labelSelector)
 	go func() {
 		for event := range watcher.ResultChan() {
 			configMap := event.Object.(*corev1.ConfigMap)
 			configMapHandler(event.Type, configMap)
 		}
-		slog.Debug("Watcher for ConfigMaps stopped", "namespace", namespace)
+		logger.Debug("Watcher for ConfigMaps stopped", "namespace", namespace)
 	}()
 	return watcher, nil
 }
@@ -125,8 +126,10 @@ func (kw *kubeWatcher) addServiceToConfig(event watch.EventType, configMap *core
 		service.Components = components
 	}
 	if event == watch.Added || event == watch.Modified {
+		kw.logger.Debug("Adding service", "service", service.ID, "namespace", configMap.Namespace, "components", len(service.Components))
 		kw.c.SetService(&service)
 	} else if event == watch.Deleted {
+		kw.logger.Debug("Removing service", "service", service.ID, "namespace", configMap.Namespace, "components", len(service.Components))
 		kw.c.RemoveService(&service)
 	}
 }
@@ -155,8 +158,10 @@ func (kw *kubeWatcher) addStatusPagesToConfig(event watch.EventType, configMap *
 	page.Services = strings.Split(s, ",")
 
 	if event == watch.Added || event == watch.Modified {
+		kw.logger.Debug("Adding status page", "page", page.ID, "namespace", configMap.Namespace, "services", len(page.Services))
 		kw.c.SetStatusPage(&page)
 	} else if event == watch.Deleted {
+		kw.logger.Debug("Removing status page", "page", page.ID, "namespace", configMap.Namespace, "services", len(page.Services))
 		kw.c.RemoveStatusPage(&page)
 	}
 }
