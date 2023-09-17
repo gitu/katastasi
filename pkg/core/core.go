@@ -24,9 +24,10 @@ type Katastasi struct {
 	statusCache      *ttlcache.Cache[string, *config.ServiceStatus]
 	prometheusClient papi.Client
 	kubeWatcher      *kubeWatcher
+	Logger           *slog.Logger
 }
 
-func NewKatastasi(info string) *Katastasi {
+func NewKatastasi(info string, logger *slog.Logger) *Katastasi {
 
 	client, err := papi.NewClient(papi.Config{
 		Address: viper.GetString("prometheus.url"),
@@ -46,6 +47,7 @@ func NewKatastasi(info string) *Katastasi {
 			LastMsg: "",
 		},
 		prometheusClient: client,
+		Logger:           logger,
 	}
 
 	duration := viper.GetDuration("cache.ttl")
@@ -73,7 +75,7 @@ func (k *Katastasi) ReloadConfig() {
 	defer k.mu.Unlock()
 
 	if k.kubeWatcher != nil {
-		slog.Debug("Stopping kube watcher")
+		k.Logger.Debug("Stopping kube watcher")
 		k.kubeWatcher.stop()
 		k.kubeWatcher = nil
 	}
@@ -88,7 +90,7 @@ func (k *Katastasi) ReloadConfig() {
 	loadServices(c)
 
 	if viper.GetBool("autoload.active") {
-		slog.Debug("watching kubernetes for changes")
+		k.Logger.Debug("watching kubernetes for changes")
 		k.kubeWatcher = newKubeWatcher(c)
 		err := k.kubeWatcher.start()
 		if err != nil {

@@ -6,7 +6,6 @@ import (
 	"github.com/gitu/katastasi/pkg/config"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -85,7 +84,7 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 	if !foundQuery {
 		nc.Status = config.Unknown
 		nc.StatusString = "Query not found"
-		slog.Warn("Query not found",
+		k.Logger.Warn("Query not found",
 			"query", component.Query,
 			"component", component.Name,
 			"parameters", component.Parameters)
@@ -96,11 +95,11 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 	if err := q.Execute(&tpl, component.Parameters); err != nil {
 		nc.Status = config.Unknown
 		nc.StatusString = "Error executing template: " + err.Error()
-		slog.Error("Error executing template", "error", err)
+		k.Logger.Error("Error executing template", "error", err)
 		return nc
 	}
 	query := tpl.String()
-	slog.Debug("built query",
+	k.Logger.Debug("built query",
 		"query", query,
 		"component", component.Name,
 		"params", component.Parameters)
@@ -117,11 +116,11 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 	if err != nil {
 		nc.StatusString = "Error querying Prometheus: " + err.Error()
 		nc.Status = config.Unknown
-		slog.Error("Error querying Prometheus", "error", err)
+		k.Logger.Error("Error querying Prometheus", "error", err)
 		return nc
 	}
 	if len(warnings) > 0 {
-		slog.Warn("Warnings", "warnings", warnings)
+		k.Logger.Warn("Warnings", "warnings", warnings)
 	}
 
 	if result.Type() == model.ValMatrix {
@@ -131,7 +130,7 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 			if len(s.Values) == 0 {
 				nc.StatusString = "No data returned"
 				nc.Status = config.Warning
-				slog.Info("No data returned",
+				k.Logger.Info("No data returned",
 					"query", query,
 					"component", component.Name,
 					"params", component.Parameters)
@@ -166,7 +165,7 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 		if matrix.Len() == 0 {
 			nc.StatusString = "No data returned"
 			nc.Status = config.Warning
-			slog.Info("No data returned",
+			k.Logger.Info("No data returned",
 				"query", query,
 				"component", component.Name,
 				"params", component.Parameters)
@@ -175,7 +174,7 @@ func (k *Katastasi) loadComponentStatus(component *config.ServiceComponent) *con
 	} else {
 		nc.StatusString = "Query did return a wrong type"
 		nc.Status = config.Unknown
-		slog.Warn("Query did return a wrong type",
+		k.Logger.Warn("Query did return a wrong type",
 			"type", result.Type(),
 			"query", query,
 			"component", component.Name,
