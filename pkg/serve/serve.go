@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	slogfiber "github.com/samber/slog-fiber"
 	"log"
 	"net/http"
 )
@@ -18,7 +18,7 @@ func StartServer(k *core.Katastasi) {
 	app := fiber.New()
 	app.Use(compress.New())
 	app.Use(requestid.New())
-	app.Use(logger.New())
+	app.Use(slogfiber.New(k.Logger))
 
 	app.Get("/api/env/:env/status/:page", func(c *fiber.Ctx) error {
 		env := c.Params("env")

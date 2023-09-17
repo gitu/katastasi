@@ -22,6 +22,10 @@ autoload:
     services:
       - default
 
+log:
+  level: debug
+  format: text
+
 pages:
   - id: manual-config-page
     name: Manual Config Page
