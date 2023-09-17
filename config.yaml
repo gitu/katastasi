@@ -12,7 +12,7 @@ queries:
   consumergroup_lag_for_topic: 'sum (kafka_consumergroup_lag{consumergroup="{{.ConsumerGroup}}", topic="{{.Topic}}"})'
 autoload:
   # do we want to fetch the config from configmaps?
-  active: true
+  active: false
   kubernetes:
     ## is katastasi running in-cluster?
     in_cluster: false

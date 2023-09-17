@@ -32,6 +32,8 @@ watch(
       await fetchStatus();
       loading.value = false;
     }, {immediate: true});
+
+const version = import.meta.env.VITE_GIT_COMMIT_VERSION as string;
 </script>
 
 <template>
@@ -56,6 +58,7 @@ watch(
         <router-link to="/">All Status Pages</router-link>
       </p>
       <p>Powered by <a href="https://github.com/gitu/katastasi">katastasi</a></p>
+      <p>{{ version }}</p>
     </div>
   </footer>
 </template>

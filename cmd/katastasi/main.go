@@ -36,8 +36,8 @@ func main() {
 	viper.SetDefault("cache.ttl", "1m")
 	viper.SetDefault("queries", map[string]string{"one": "1"})
 	viper.SetDefault("autoload", true)
-	viper.SetDefault("autoload.kuberentes.config", "")
-	viper.SetDefault("autoload.kuberentes.in_cluster", true)
+	viper.SetDefault("autoload.kubernetes.config", "")
+	viper.SetDefault("autoload.kubernetes.in_cluster", true)
 	viper.SetDefault("autoload.namespaces.pages", []string{"changeme"})
 	viper.SetDefault("autoload.namespaces.services", []string{"changeme"})
 

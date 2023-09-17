@@ -9,6 +9,8 @@ fetch('/api/envs')
     .then(data => {
       envList.value = data;
     });
+
+const version = import.meta.env.VITE_GIT_COMMIT_VERSION as string;
 </script>
 
 <template>
@@ -39,6 +41,7 @@ fetch('/api/envs')
   <footer class="footer">
     <div class="content has-text-centered">
       <p>Powered by <a href="https://github.com/gitu/katastasi">katastasi</a></p>
+      <p>{{ version }}</p>
     </div>
   </footer>
 </template>
