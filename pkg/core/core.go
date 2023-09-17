@@ -6,6 +6,7 @@ import (
 	papi "github.com/prometheus/client_golang/api"
 	"github.com/spf13/viper"
 	"log"
+	"log/slog"
 	"sync"
 	"text/template"
 )
@@ -72,7 +73,7 @@ func (k *Katastasi) ReloadConfig() {
 	defer k.mu.Unlock()
 
 	if k.kubeWatcher != nil {
-		log.Print("Stopping kube watcher")
+		slog.Debug("Stopping kube watcher")
 		k.kubeWatcher.stop()
 		k.kubeWatcher = nil
 	}
@@ -87,7 +88,7 @@ func (k *Katastasi) ReloadConfig() {
 	loadServices(c)
 
 	if viper.GetBool("autoload.active") {
-		log.Print("watching kubernetes for changes")
+		slog.Debug("watching kubernetes for changes")
 		k.kubeWatcher = newKubeWatcher(c)
 		err := k.kubeWatcher.start()
 		if err != nil {

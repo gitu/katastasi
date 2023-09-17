@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"gopkg.in/yaml.v3"
-	"log"
+	"log/slog"
 	"strings"
 	"text/template"
 	"time"
@@ -176,13 +176,16 @@ type Config struct {
 
 func (c *Config) AddQuery(name, expr, source string) {
 	if _, f := c.Queries[name]; f {
-		log.Printf("Duplicate query name %s in %s", name, source)
+		slog.Warn("Duplicate query", "name", name, "source", source)
 		return
 	}
 
 	t, err := template.New(name).Parse(expr)
 	if err != nil {
-		log.Printf("Error parsing query %s in %s: %s", name, source, err.Error())
+		slog.Error("Error parsing query",
+			"name", name,
+			"source", source,
+			"error", err.Error())
 		return
 	}
 	c.Queries[name] = t
@@ -211,7 +214,7 @@ func (c *Config) SetService(s *Service) {
 		c.Environments[s.Environment] = newEnv(s.Environment)
 	}
 	c.Environments[s.Environment].Services[s.ID] = s
-	log.Printf("Set service %s to environment %s", s.ID, s.Environment)
+	slog.Debug("Set service", "service", s.ID, "environment", s.Environment)
 }
 
 func (c *Config) RemoveService(s *Service) {
@@ -226,7 +229,7 @@ func (c *Config) SetStatusPage(sp *StatusPage) {
 		c.Environments[sp.Environment] = newEnv(sp.Environment)
 	}
 	c.Environments[sp.Environment].StatusPages[sp.ID] = sp
-	log.Printf("Set status page %s to environment %s", sp.ID, sp.Environment)
+	slog.Debug("Set status page", "status page", sp.ID, "environment", sp.Environment)
 }
 
 func (c *Config) RemoveStatusPage(sp *StatusPage) {
