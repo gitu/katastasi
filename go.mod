@@ -1,6 +1,7 @@
 module github.com/gitu/katastasi
 
 go 1.21
+
 toolchain go1.21.1
 
 toolchain go1.21.1
