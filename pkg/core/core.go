@@ -91,7 +91,7 @@ func (k *Katastasi) ReloadConfig() {
 
 	if viper.GetBool("autoload.active") {
 		k.Logger.Debug("watching kubernetes for changes")
-		k.kubeWatcher = newKubeWatcher(c)
+		k.kubeWatcher = newKubeWatcher(c, k.Logger)
 		err := k.kubeWatcher.start()
 		if err != nil {
 			log.Fatal("Error starting kube watcher: " + err.Error())
