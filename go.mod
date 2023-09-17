@@ -1,7 +1,7 @@
 module github.com/gitu/katastasi
 
 go 1.21
-toolchain 1.21.1
+toolchain go1.21.1
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
