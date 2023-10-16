@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gofiber/fiber/v2 v2.49.2
-	github.com/gzuidhof/tygo v0.2.9
+	github.com/gzuidhof/tygo v0.2.13
 	github.com/jellydator/ttlcache/v3 v3.1.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
