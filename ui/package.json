@@ -23,7 +23,7 @@
     "vuetify": "^3.3.16"
   },
   "devDependencies": {
-    "@playwright/test": "^1.38.0",
+    "@playwright/test": "^1.40.1",
     "@rushstack/eslint-patch": "^1.4.0",
     "@tsconfig/node18": "^18.2.2",
     "@types/node": "^20.6.2",
