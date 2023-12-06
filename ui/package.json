@@ -20,7 +20,7 @@
     "vue-facing-decorator": "^3.0.2",
     "vue-router": "^4.2.4",
     "vue3-material-design-icons-ts": "^5.0.10",
-    "vuetify": "^3.3.16"
+    "vuetify": "^3.4.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.38.0",
