@@ -233,8 +233,8 @@ github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5m
 github.com/googleapis/gax-go/v2 v2.1.0/go.mod h1:Q3nei7sK6ybPYH7twZdmQpAd1MKb7pfu6SK+H1/DsU0=
 github.com/googleapis/gax-go/v2 v2.1.1/go.mod h1:hddJymUZASv3XPyGkUpKj8pPO47Rmb0eJc8R6ouapiM=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
-github.com/gzuidhof/tygo v0.2.9 h1:TO5n26+Wjv2qy8OhihZMeVmozmFf3oNH7/XJgPT9AmY=
-github.com/gzuidhof/tygo v0.2.9/go.mod h1:s3lpnppkDixQQhMWD78yPtAmugMHENsPWpQYziUIpw0=
+github.com/gzuidhof/tygo v0.2.14 h1:QRBD6eby2SMyYzv8KzXA+yopPbEO6w2Qzuuqqp9z+vU=
+github.com/gzuidhof/tygo v0.2.14/go.mod h1:s3lpnppkDixQQhMWD78yPtAmugMHENsPWpQYziUIpw0=
 github.com/hashicorp/consul/api v1.11.0/go.mod h1:XjsvQN+RJGWI2TWy1/kqaE16HrR2J/FWgkYjdZQsX9M=
 github.com/hashicorp/consul/sdk v0.8.0/go.mod h1:GBvyrGALthsZObzUGsfgHZQDXjg4lOjagTIwIR1vPms=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
