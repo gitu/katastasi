@@ -14,7 +14,7 @@
     "refresh-screenshots": "playwright test && cp screenshots/* ../screenshots/e2e/"
   },
   "dependencies": {
-    "bulma": "^0.9.4",
+    "bulma": "^1.0.1",
     "pinia": "^2.1.7",
     "vue": "^3.3.2",
     "vue-facing-decorator": "^3.0.2",
