@@ -11,7 +11,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.53.0
-	github.com/samber/slog-fiber v1.15.0
+	github.com/samber/slog-fiber v1.15.2
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v3 v3.0.1
